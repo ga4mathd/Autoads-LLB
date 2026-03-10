@@ -18,9 +18,9 @@ LOCK_FILE = os.path.join(os.path.dirname(__file__), '.care_engine.lock')
 # Add parent dir
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from core.telegram_notifier import (
-    alert_kill, alert_scale, alert_revive,
-    alert_creative_fatigue, alert_budget_transfer,
-    send_scan_report
+    send_periodic_scan,
+    send_slow_spend_report,
+    send_midnight_revive
 )
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
@@ -192,6 +192,15 @@ def run_care():
     is_noon = hour == 12
 
     report_camps = []      # Chỉ lưu camp có spend > 0 hoặc ACTIVE
+    kills = []
+    scales = []
+    alerts = []
+    redistributes = []
+    revives = []
+    kept_paused = []
+    dead_creatives = []
+    slow_camps = []
+    active_count = 0
     total_spend_vnd = 0
     total_orders = 0
 
@@ -221,6 +230,8 @@ def run_care():
         print(f"  📋 {name[:40]} | {status} | Spend: {spend_vnd:,.0f}đ | Đơn: {orders} | CPA: {cpa_today_vnd:,.0f}đ")
 
         # Chỉ đưa vào báo cáo nếu ACTIVE hoặc có spend hôm nay
+        if status == "ACTIVE":
+            active_count += 1
         if status == "ACTIVE" or spend_vnd > 0:
             report_camps.append({
                 "name": name,
@@ -237,8 +248,7 @@ def run_care():
             if spend_vnd >= 150000 and orders == 0:
                 print(f"  🔴 KILL_01 triggered: {name}")
                 set_campaign_status(cid, "PAUSED")
-                alert_kill(name, "KILL_01", spend_vnd, orders,
-                           "Spend ≥ 150k, không có đơn nào.")
+                kills.append({"name": name, "rule": "KILL_01", "spend_vnd": spend_vnd, "orders": orders, "cpa_vnd": cpa_today_vnd, "reason": "Spend ≥ 150k, không có đơn nào."})
                 continue
 
             # KILL_02: Spend >= 105k, 0 đơn. Lịch sử 3 ngày CPA tốt → cho tiêu đến 150k
@@ -249,8 +259,7 @@ def run_care():
                 else:
                     print(f"  🔴 KILL_02 triggered (lịch sử xấu): {name}")
                     set_campaign_status(cid, "PAUSED")
-                    alert_kill(name, "KILL_02", spend_vnd, orders,
-                               f"Spend ≥ 105k, 0 đơn. Lịch sử 3 ngày CPA {cpa_3d:,.0f}đ ≥ {CPA_TARGET:,.0f}đ → Tắt ngay.")
+                    kills.append({"name": name, "rule": "KILL_02", "spend_vnd": spend_vnd, "orders": orders, "cpa_vnd": cpa_today_vnd, "reason": f"Spend ≥ 105k, 0 đơn. Lịch sử 3 ngày CPA {cpa_3d:,.0f}đ ≥ {CPA_TARGET:,.0f}đ → Tắt ngay."})
                     continue
 
             # KILL_03: Spend 105k-210k, chỉ 1 đơn
@@ -260,8 +269,7 @@ def run_care():
                 else:
                     print(f"  🔴 KILL_03 triggered: {name}")
                     set_campaign_status(cid, "PAUSED")
-                    alert_kill(name, "KILL_03", spend_vnd, orders,
-                               f"Spend 105-210k, chỉ 1 đơn. Lịch sử 3 ngày CPA {cpa_3d:,.0f}đ ≥ {CPA_TARGET:,.0f}đ → Tắt.")
+                    kills.append({"name": name, "rule": "KILL_03", "spend_vnd": spend_vnd, "orders": orders, "cpa_vnd": cpa_today_vnd, "reason": f"Spend 105-210k, chỉ 1 đơn. Lịch sử 3 ngày CPA {cpa_3d:,.0f}đ ≥ {CPA_TARGET:,.0f}đ → Tắt."})
                     continue
 
             # KILL_04: 12h trưa — chưa đạt 30% ngân sách
@@ -270,8 +278,7 @@ def run_care():
                 if spend_vnd < expected_noon:
                     print(f"  🔴 KILL_04 triggered: {name} — 12h chưa đạt 30% NS")
                     set_campaign_status(cid, "PAUSED")
-                    alert_kill(name, "KILL_04", spend_vnd, orders,
-                               f"12h trưa spend {spend_vnd:,.0f}đ < 30% NS ({expected_noon:,.0f}đ). Chuyển NS sang camp tốt hơn.")
+                    kills.append({"name": name, "rule": "KILL_04", "spend_vnd": spend_vnd, "orders": orders, "cpa_vnd": cpa_today_vnd, "reason": f"12h trưa spend {spend_vnd:,.0f}đ < 30% NS ({expected_noon:,.0f}đ). Chuyển NS sang camp tốt hơn."})
                     continue
 
             # SCALE_01: CPA hôm nay < 75k → Tăng NS 30%
@@ -281,12 +288,12 @@ def run_care():
                 if new_budget > daily_budget_usd:
                     print(f"  🟢 SCALE_01: {name} — CPA {cpa_today_vnd:,.0f}đ < {CPA_SCALE:,.0f}đ → Tăng NS")
                     set_campaign_budget(cid, new_budget)
-                    alert_scale(name, "SCALE_01", daily_budget_usd, new_budget, cpa_today_vnd)
+                    scales.append({"name": name, "pct": 30, "old_budget_vnd": usd_to_vnd(daily_budget_usd), "new_budget_vnd": usd_to_vnd(new_budget), "cpa_vnd": cpa_today_vnd, "orders": orders})
 
             # ALERT_01: Frequency > 2.5 HOẶC CTR giảm 30%
             if frequency > 2.5:
                 print(f"  ⚠️ ALERT_01: {name} — Frequency {frequency:.2f} > 2.5")
-                alert_creative_fatigue(name, frequency, 0)
+                alerts.append({"name": name, "frequency": frequency, "ctr_drop_pct": 0})
 
             # Ghi nhận camp tốt (cho SCALE_02 / KILL_04 chuyển NS)
             if orders > 0 and cpa_today_vnd < CPA_TARGET:
@@ -305,17 +312,34 @@ def run_care():
             if cpa_3d < CPA_TARGET and cpa_7d < CPA_TARGET and spend_vnd <= 200000:
                 print(f"  🔵 REVIVE_01: {name} — CPA tốt → Bật lại NS cũ")
                 set_campaign_status(cid, "ACTIVE")
-                alert_revive(name, "REVIVE_01", daily_budget_usd, cpa_3d, cpa_7d)
+                revives.append({"name": name, "rule": "REVIVE_01", "cpa_3d_vnd": cpa_3d, "cpa_7d_vnd": cpa_7d, "budget_vnd": usd_to_vnd(daily_budget_usd)})
 
             # REVIVE_02: CPA 7 ngày < 105k nhưng 3 ngày >= 105k → Bật lại $10 test
             elif cpa_7d < CPA_TARGET and cpa_3d >= CPA_TARGET:
                 print(f"  🔵 REVIVE_02: {name} — CPA 7 ngày tốt, 3 ngày xấu → Bật $10 test")
                 set_campaign_budget(cid, 10.0)
                 set_campaign_status(cid, "ACTIVE")
-                alert_revive(name, "REVIVE_02", 10.0, cpa_3d, cpa_7d)
+                revives.append({"name": name, "rule": "REVIVE_02", "cpa_3d_vnd": cpa_3d, "cpa_7d_vnd": cpa_7d, "budget_vnd": usd_to_vnd(10.0)})
 
-    # Gửi báo cáo tổng (chỉ camp ACTIVE hoặc có spend)
-    send_scan_report(now_str, report_camps, total_spend_vnd, total_orders)
+    # Gửi báo cáo tổng
+    date_str = datetime.now().strftime("%d/%m/%Y")
+    avg_cpa = (total_spend_vnd // total_orders) if total_orders > 0 else 999999
+    
+    send_periodic_scan(
+        hour=hour,
+        date_str=date_str,
+        kills=kills,
+        redistributes=redistributes,
+        scales=scales,
+        alerts=alerts,
+        active_count=active_count,
+        total_spend_vnd=total_spend_vnd,
+        total_orders=total_orders,
+        avg_cpa_vnd=avg_cpa
+    )
+    
+    if is_midnight and (revives or dead_creatives or kept_paused):
+        send_midnight_revive(date_str, revives, dead_creatives, kept_paused)
     print(f"\n✅ Scan hoàn tất. Tổng spend: {total_spend_vnd:,.0f}đ | Đơn: {total_orders}")
 
     # Release lock
