@@ -1,0 +1,66 @@
+{
+    "DEFAULT_SETTINGS": {
+        "MARKET_VN": {
+            "age_min": 25,
+            "age_max": 45,
+            "geo_locations": {"countries": ["VN"]},
+            "welcome_message": {
+                "message": {
+                    "text": "Xin chào {{user_first_name}}! Bạn cần hỗ trợ gì ạ?",
+                    "quick_replies": [{"content_type": "text", "title": "Tôi muốn đặt mua sách", "payload": "ORDER_BOOK"}]
+                }
+            }
+        },
+        "MARKET_CAM": {
+            "age_min": 25, 
+            "age_max": 45,
+            "geo_locations": {"countries": ["KH"]},
+            "welcome_message": {
+                "message": {
+                    "text": "សួស្តី {{user_first_name}}! តើមានអ្វីឱ្យយើងខ្ញុំជួយទេ?",
+                    "quick_replies": [{"content_type": "text", "title": "ខ្ញុំចង់កុម្ម៉ង់សៀវភៅ", "payload": "ORDER_BOOK"}]
+                }
+            } 
+        },
+        "PLACEMENTS": {
+            "publisher_platforms": ["facebook"],
+            "facebook_positions": [
+                "feed",
+                "marketplace",
+                "video_feeds",
+                "story",
+                "facebook_reels",
+                "instream_video",
+                "search"
+            ],
+            "targeting_automation": {"advantage_audience": 0}
+        }
+    },
+    "CAMPAIGN_TYPES": {
+        "MESSENGER_CONVERSATIONS": {
+            "objective": "OUTCOME_ENGAGEMENT",
+            "optimization_goal": "CONVERSATIONS",
+            "destination_type": "MESSENGER",
+            "note": "Tối đa hóa số cuộc trò chuyện (Mặc định nếu không nhắc gì thêm)"
+        },
+        "MESSENGER_PURCHASE": {
+            "objective": "OUTCOME_ENGAGEMENT",
+            "optimization_goal": "MESSAGING_PURCHASE_CONVERSIONS",
+            "destination_type": "MESSENGER",
+            "note": "Tối đa hóa số lượt mua qua tin nhắn (Như ảnh Vanh gửi)"
+        },
+        "CONVERSION_SALES": {
+            "objective": "OUTCOME_SALES",
+            "optimization_goal": "OFFSITE_CONVERSIONS",
+            "custom_event_type": "COMPLETE_REGISTRATION",
+            "pixel_id": "1259289766031011"
+        }
+    },
+    "PRODUCTS": {
+        "NTGTCM": {
+            "name": "Nghệ thuật giao tiếp cha mẹ",
+            "insight": "Nỗi đau con bướng bỉnh, cãi lời, thu mình. Giải pháp: Lắng nghe thấu cảm, không quát mắng đòn roi, khen chê đúng cách.",
+            "link": "https://ai.lollibooks.net/ntgtcm"
+        }
+    }
+}

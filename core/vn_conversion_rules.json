@@ -1,0 +1,23 @@
+{
+    "market": "VN",
+    "campaign_type": "CONVERSION",
+    "cpa_target": 105000,
+    "cpa_scale": 75000,
+    "max_daily_budget_usd": 200,
+    "rules": {
+        "KILL_01": "Spend trong ngày >= 150k VÀ 0 đơn -> Tắt campaign",
+        "KILL_02": "Spend >= 105k, 0 đơn. Lịch sử 3 ngày CPA TB < 105k -> Cho tiêu thêm đến 150k. Nếu vẫn 0 đơn -> Tắt",
+        "KILL_03": "Spend 105k-210k, ra 1 đơn. Lịch sử 3 ngày CPA TB < 105k -> Cho tiêu đến 210k. Không ra thêm -> Tắt (Nếu lịch sử >= 105k -> Tắt ngay)",
+        "KILL_04": "12h trưa spend chưa đạt 30% -> Chuyển NS thiếu sang camp CPA thấp nhất (<105k) -> Tắt camp",
+        "KILL_05": "Camp tắt 2 lần trong 7 ngày -> Khóa vĩnh viễn (Creative chết)",
+        "SCALE_01": "CPA trong ngày < 75k -> Tăng NS 30% (Max 200$/ngày)",
+        "SCALE_02": "Camp bị tắt -> Dồn NS còn thừa trong ngày sang camp có CPA thấp nhất (<105k) và nhiều đơn nhất",
+        "REVIVE_01": "0h đêm: Camp đang tắt có CPA 3 ngày < 105k & 7 ngày < 105k & ngày gần nhất <= 200k & chưa bị tắt 2 lần -> Bật lại NS cũ",
+        "REVIVE_02": "0h đêm: CPA 7 ngày < 105k nhưng 3 ngày >= 105k -> Bật lại với NS $10 test",
+        "ALERT_01": "Frequency > 2.5 HOẶC CTR giảm 30% so với TB 3 ngày -> Cảnh báo Telegram (Mỏi creative)"
+    },
+    "schedule": {
+        "scan_interval_hours": 2,
+        "special_times": ["12:00", "00:00"]
+    }
+}
