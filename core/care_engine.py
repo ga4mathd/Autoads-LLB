@@ -40,7 +40,7 @@ with open(config_path, 'r') as f:
 
 CPA_TARGET = CONFIG["cpa_target"]       # 105,000 VND
 CPA_SCALE  = CONFIG["cpa_scale"]        # 75,000 VND
-USD_TO_VND = 25400                       # VCB ngày 09/03/2026
+USD_TO_VND = 26670                       # VCB ngày 09/03/2026
 
 
 def vnd_to_usd(vnd: int) -> float:
