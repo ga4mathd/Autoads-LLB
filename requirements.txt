@@ -1,0 +1,1 @@
+\nanthropic>=0.21.0\ngspread>=6.0.0\ngoogle-auth>=2.25.0\nrequests>=2.31.0\nschedule>=1.2.0
